@@ -1,0 +1,129 @@
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.mode-selector {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 12px;
+}
+
+.mode-selector label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.mode-selector label:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.mode-selector input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.upload-zone {
+  border: 3px dashed #667eea;
+  border-radius: 16px;
+  padding: 3rem;
+  margin: 2rem 0;
+  transition: all 0.3s ease;
+  background: rgba(102, 126, 234, 0.05);
+  cursor: pointer;
+}
+
+.upload-zone:hover {
+  border-color: #764ba2;
+  background: rgba(102, 126, 234, 0.1);
+  transform: scale(1.02);
+}
+
+.upload-zone.drag-active {
+  border-color: #764ba2;
+  background: rgba(118, 75, 162, 0.15);
+  transform: scale(1.05);
+}
+
+.upload-zone label {
+  cursor: pointer;
+  display: block;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.file-info small {
+  color: #888;
+}
+
+.analyze-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.analyze-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+}
+
+.analyze-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.result-box {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 12px;
+  text-align: left;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.result-box h2 {
+  margin-top: 0;
+  color: #667eea;
+}
+
+.result-box pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  font-size: 1rem;
+}
