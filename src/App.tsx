@@ -74,6 +74,26 @@ function App() {
     return fullText
   }
 
+  const extractCaiuNaOabSnippets = (fullText: string): string => {
+    const pages = fullText.split(/\n--- Página (\d+) ---\n/)
+    const snippets: string[] = []
+
+    // pages = ['', '1', textoPag1, '2', textoPag2, ...]
+    for (let i = 1; i < pages.length; i += 2) {
+      const pageNum = pages[i]
+      const pageText = pages[i + 1] || ''
+      const regex = /caiu\s+na\s+oab[^*\n]*/gi
+      let match
+      while ((match = regex.exec(pageText)) !== null) {
+        const start = Math.max(0, match.index - 900)
+        const context = pageText.slice(start, match.index + match[0].length + 100)
+        snippets.push(`[Página ${pageNum}] ...${context.trim()}...`)
+      }
+    }
+
+    return snippets.join('\n\n=====\n\n')
+  }
+
   const handleAnalyze = async () => {
     if (!file) return
 
@@ -116,10 +136,30 @@ function App() {
       // Para PDFs - extrair texto e processar
       else if (fileType === 'application/pdf') {
         const extractedText = await extractTextFromPDF(file)
-        
-        const prompt = mode === 'caiu-oab'
-          ? `No texto abaixo, extraído de um PDF (com marcadores de página), localize todos os trechos marcados com a expressão 'caiu na OAB' (em qualquer variação: 'Caiu na OAB!', 'CAIU NA OAB', etc.). Para cada ocorrência, transcreva na íntegra o conteúdo associado à marcação (a questão, enunciado ou trecho completo) e indique a página em que aparece. Não resuma nem parafraseie. Se não houver nenhuma marcação 'caiu na OAB', responda exatamente: 'Nenhum trecho "caiu na OAB" encontrado.'\n\n${extractedText}`
-          : mode === 'transcrever'
+
+        if (mode === 'caiu-oab') {
+          const snippets = extractCaiuNaOabSnippets(extractedText)
+
+          if (!snippets) {
+            setResult('Nenhum trecho "caiu na OAB" encontrado no texto do PDF. (Se o PDF for escaneado/imagem, a extração de texto não funciona.)')
+            return
+          }
+
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: `Abaixo estão trechos de um material de estudo, extraídos automaticamente ao redor de marcações como '*CAIU NA OAB 43*' (o número indica o exame da OAB em que o tema caiu). Cada trecho indica a página e os trechos são separados por '====='.\n\nPara cada trecho, identifique o dispositivo/conteúdo ao qual a marcação se refere (geralmente o artigo, inciso ou parágrafo imediatamente anterior à marcação) e transcreva-o na íntegra, organizado assim:\n\n⚖️ CAIU NA OAB <exame(s)> — Página <n>\n<conteúdo completo do dispositivo/trecho>\n\nNão resuma nem parafraseie o conteúdo. Não invente nada além do que está nos trechos.\n\n${snippets}`
+              }
+            ],
+          })
+
+          setResult(response.choices[0].message.content || 'Sem resultado')
+          return
+        }
+
+        const prompt = mode === 'transcrever'
           ? `Por favor, transcreva e organize o seguinte conteúdo extraído do PDF de forma clara e estruturada:\n\n${extractedText}`
           : `Por favor, analise e resuma o seguinte conteúdo do PDF de forma clara e objetiva:\n\n${extractedText}`
         
