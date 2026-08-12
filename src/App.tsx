@@ -74,20 +74,32 @@ function App() {
     return fullText
   }
 
-  const extractCaiuNaOabSnippets = (fullText: string): string => {
+  const extractCaiuNaOabSnippets = (fullText: string, isResumo: boolean): string => {
     const pages = fullText.split(/\n--- Página (\d+) ---\n/)
     const snippets: string[] = []
+    // Resumo: corte maior pra pegar a seção toda; caderno de leis: só o artigo
+    const CONTEXT_BEFORE = isResumo ? 2500 : 900
+    const CONTEXT_AFTER = isResumo ? 400 : 100
 
     // pages = ['', '1', textoPag1, '2', textoPag2, ...]
     for (let i = 1; i < pages.length; i += 2) {
       const pageNum = pages[i]
       const pageText = pages[i + 1] || ''
       const regex = /caiu\s+na\s+oab[^*\n]*/gi
+      const ranges: Array<[number, number]> = []
       let match
       while ((match = regex.exec(pageText)) !== null) {
-        const start = Math.max(0, match.index - 900)
-        const context = pageText.slice(start, match.index + match[0].length + 100)
-        snippets.push(`[Página ${pageNum}] ...${context.trim()}...`)
+        const start = Math.max(0, match.index - CONTEXT_BEFORE)
+        const end = Math.min(pageText.length, match.index + match[0].length + CONTEXT_AFTER)
+        const last = ranges[ranges.length - 1]
+        if (last && start <= last[1]) {
+          last[1] = end // mescla marcações próximas num único trecho
+        } else {
+          ranges.push([start, end])
+        }
+      }
+      for (const [start, end] of ranges) {
+        snippets.push(`[Página ${pageNum}] ...${pageText.slice(start, end).trim()}...`)
       }
     }
 
@@ -138,7 +150,10 @@ function App() {
         const extractedText = await extractTextFromPDF(file)
 
         if (mode === 'caiu-oab') {
-          const snippets = extractCaiuNaOabSnippets(extractedText)
+          // É resumo se o nome do arquivo ou a primeira página do PDF disser "resumo"
+          const firstPage = extractedText.split(/\n--- Página \d+ ---\n/)[1] || ''
+          const isResumo = /resumo/i.test(file.name) || /resumo/i.test(firstPage)
+          const snippets = extractCaiuNaOabSnippets(extractedText, isResumo)
 
           if (!snippets) {
             setResult('Nenhum trecho "caiu na OAB" encontrado no texto do PDF. (Se o PDF for escaneado/imagem, a extração de texto não funciona.)')
@@ -150,7 +165,7 @@ function App() {
             messages: [
               {
                 role: "user",
-                content: `Abaixo estão trechos de um material de estudo, extraídos automaticamente ao redor de marcações como '*CAIU NA OAB 43*' (o número indica o exame da OAB em que o tema caiu). Cada trecho indica a página e os trechos são separados por '====='.\n\nPara cada trecho, identifique o dispositivo/conteúdo ao qual a marcação se refere (geralmente o artigo, inciso ou parágrafo imediatamente anterior à marcação) e transcreva-o na íntegra, organizado assim:\n\n⚖️ CAIU NA OAB <exame(s)> — Página <n>\n<conteúdo completo do dispositivo/trecho>\n\nNão resuma nem parafraseie o conteúdo. Não invente nada além do que está nos trechos.\n\n${snippets}`
+                content: `Abaixo estão trechos de um material de estudo, extraídos automaticamente ao redor de marcações como '*CAIU NA OAB 43*' (o número indica o exame da OAB em que o tema caiu). Cada trecho indica a página e os trechos são separados por '====='.\n\nPara cada marcação, identifique o conteúdo ao qual ela se refere e transcreva-o COMPLETO. Regras:\n- Se a marcação estiver ao lado de um artigo/inciso/parágrafo de lei, transcreva o dispositivo inteiro.\n- Se a marcação estiver dentro de um tópico ou seção de resumo (ex.: '1.2 Poder Constituinte Derivado'), transcreva TODO o conteúdo desse tópico desde o título da seção — incluindo definições, características e listas de itens — e não apenas a frase imediatamente anterior à marcação.\n- Se houver mais de uma marcação no mesmo tópico, transcreva o tópico uma única vez, listando todos os exames no cabeçalho.\n\nFormato de saída para cada item:\n\n⚖️ CAIU NA OAB <exame(s)> — Página <n>\n<conteúdo completo do tópico/dispositivo>\n\nNão resuma nem parafraseie o conteúdo. Não invente nada além do que está nos trechos.\n\n${snippets}`
               }
             ],
           })
