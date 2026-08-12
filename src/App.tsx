@@ -19,7 +19,7 @@ function App() {
   const [result, setResult] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
-  const [mode, setMode] = useState<'resumir' | 'transcrever'>('resumir')
+  const [mode, setMode] = useState<'resumir' | 'transcrever' | 'caiu-oab'>('resumir')
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -87,7 +87,9 @@ function App() {
       if (fileType.startsWith('image/')) {
         const base64 = await convertToBase64(file)
         
-        const prompt = mode === 'transcrever' 
+        const prompt = mode === 'caiu-oab'
+          ? "Nesta imagem, localize os trechos marcados com a expressão 'caiu na OAB' (em qualquer variação: 'Caiu na OAB!', 'CAIU NA OAB', etc.). Transcreva na íntegra apenas o conteúdo desses trechos (a questão, enunciado ou texto associado à marcação). Se não houver nenhuma marcação 'caiu na OAB', responda exatamente: 'Nenhum trecho \"caiu na OAB\" encontrado.'"
+          : mode === 'transcrever'
           ? "Por favor, transcreva todo o texto visível nesta imagem de forma precisa e completa."
           : "Por favor, analise esta imagem e forneça um resumo detalhado do que você vê, incluindo texto se houver."
         
@@ -115,7 +117,9 @@ function App() {
       else if (fileType === 'application/pdf') {
         const extractedText = await extractTextFromPDF(file)
         
-        const prompt = mode === 'transcrever'
+        const prompt = mode === 'caiu-oab'
+          ? `No texto abaixo, extraído de um PDF (com marcadores de página), localize todos os trechos marcados com a expressão 'caiu na OAB' (em qualquer variação: 'Caiu na OAB!', 'CAIU NA OAB', etc.). Para cada ocorrência, transcreva na íntegra o conteúdo associado à marcação (a questão, enunciado ou trecho completo) e indique a página em que aparece. Não resuma nem parafraseie. Se não houver nenhuma marcação 'caiu na OAB', responda exatamente: 'Nenhum trecho "caiu na OAB" encontrado.'\n\n${extractedText}`
+          : mode === 'transcrever'
           ? `Por favor, transcreva e organize o seguinte conteúdo extraído do PDF de forma clara e estruturada:\n\n${extractedText}`
           : `Por favor, analise e resuma o seguinte conteúdo do PDF de forma clara e objetiva:\n\n${extractedText}`
         
@@ -137,7 +141,9 @@ function App() {
         
         const base64 = await convertToBase64(file)
         
-        const prompt = mode === 'transcrever'
+        const prompt = mode === 'caiu-oab'
+          ? "Nesta apresentação, localize os trechos marcados com a expressão 'caiu na OAB' (em qualquer variação) e transcreva na íntegra apenas o conteúdo desses trechos, indicando o slide. Se não houver nenhuma marcação 'caiu na OAB', responda exatamente: 'Nenhum trecho \"caiu na OAB\" encontrado.'"
+          : mode === 'transcrever'
           ? "Por favor, transcreva TODO o conteúdo textual desta apresentação PowerPoint de forma completa e organizada, slide por slide."
           : "Por favor, analise e resuma o conteúdo principal desta apresentação PowerPoint."
         
@@ -181,7 +187,7 @@ function App() {
             type="radio"
             value="resumir"
             checked={mode === 'resumir'}
-            onChange={(e) => setMode(e.target.value as 'resumir' | 'transcrever')}
+            onChange={(e) => setMode(e.target.value as 'resumir' | 'transcrever' | 'caiu-oab')}
           />
           📝 Resumir
         </label>
@@ -190,9 +196,18 @@ function App() {
             type="radio"
             value="transcrever"
             checked={mode === 'transcrever'}
-            onChange={(e) => setMode(e.target.value as 'resumir' | 'transcrever')}
+            onChange={(e) => setMode(e.target.value as 'resumir' | 'transcrever' | 'caiu-oab')}
           />
           📋 Transcrever
+        </label>
+        <label>
+          <input
+            type="radio"
+            value="caiu-oab"
+            checked={mode === 'caiu-oab'}
+            onChange={(e) => setMode(e.target.value as 'resumir' | 'transcrever' | 'caiu-oab')}
+          />
+          ⚖️ Caiu na OAB
         </label>
       </div>
 
@@ -230,7 +245,7 @@ function App() {
         disabled={!file || loading}
         className="analyze-btn"
       >
-        {loading ? '⏳ Processando...' : `🚀 ${mode === 'resumir' ? 'Resumir' : 'Transcrever'} Documento`}
+        {loading ? '⏳ Processando...' : mode === 'caiu-oab' ? '⚖️ Extrair "Caiu na OAB"' : `🚀 ${mode === 'resumir' ? 'Resumir' : 'Transcrever'} Documento`}
       </button>
 
       {result && (
